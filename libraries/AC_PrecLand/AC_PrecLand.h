@@ -57,6 +57,7 @@ public:
 
     // vehicle has to be closer than this many cm's to the target before descending towards target
     float get_max_xy_error_before_descending_cm() const { return _xy_max_dist_desc * 100.0f; }
+    float get_max_xy_error_before_descending_cm(float alt_above_target_cm) const;
 
     // returns orientation of sensor
     Rotation get_orient() const { return _orient; }
@@ -207,6 +208,9 @@ private:
     AP_Float                    _sensor_max_alt;     // PrecLand maximum height the sensor can detect target
     AP_Int16                    _options;            // Bitmask for extra options
     AP_Enum<Rotation>           _orient;             // Orientation of camera/sensor
+    AP_Int8                     _enabled2;           // Enable altitude based XY descent limit
+    AP_Float                    _sensor_max_alt2;    // Lower height for altitude based XY descent limit
+    AP_Float                    _xy_max_dist_desc2;  // Lower XY descent limit for altitude based XY descent limit
 
     uint32_t                    _last_update_ms;    // system time in millisecond when update was last called
     bool                        _target_acquired;   // true if target has been seen recently after estimator is initialized

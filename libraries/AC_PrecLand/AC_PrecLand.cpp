@@ -190,6 +190,29 @@ const AP_Param::GroupInfo AC_PrecLand::var_info[] = {
     // @RebootRequired: True
     AP_GROUPINFO_FRAME("ORIENT", 18, AC_PrecLand, _orient, AC_PRECLAND_ORIENT_DEFAULT, AP_PARAM_FRAME_ROVER),
 
+    // @Param: ENABLE2
+    // @DisplayName: Precision Landing altitude based XY limit enable
+    // @Description: Enables an altitude based precision landing XY error limit. When disabled, PLND_XY_DIST_MAX is used at all altitudes.
+    // @Values: 0:Disabled, 1:Enabled
+    // @User: Advanced
+    AP_GROUPINFO("ENABLE2", 19, AC_PrecLand, _enabled2, 0),
+
+    // @Param: ALT_MAX2
+    // @DisplayName: Precision Landing lower altitude for XY limit
+    // @Description: Lower altitude above the landing target used with PLND_XY_MAX2 for altitude based precision landing XY error limiting.
+    // @Range: 0 50
+    // @Units: m
+    // @User: Advanced
+    AP_GROUPINFO("ALT_MAX2", 20, AC_PrecLand, _sensor_max_alt2, 0.7f),
+
+    // @Param: XY_MAX2
+    // @DisplayName: Precision Landing lower XY limit
+    // @Description: Maximum XY error allowed before descending at or below PLND_ALT_MAX2 when PLND_ENABLE2 is enabled. Between PLND_ALT_MAX and PLND_ALT_MAX2, the allowed XY error is linearly interpolated between PLND_XY_DIST_MAX and this value.
+    // @Range: 0 10
+    // @Units: m
+    // @User: Advanced
+    AP_GROUPINFO("XY_MAX2", 21, AC_PrecLand, _xy_max_dist_desc2, 0.1f),
+
     AP_GROUPEND
 };
 
@@ -368,6 +391,32 @@ void AC_PrecLand::check_target_status(float rangefinder_alt_m, bool rangefinder_
             }
         }
     }
+}
+
+float AC_PrecLand::get_max_xy_error_before_descending_cm(float alt_above_target_cm) const
+{
+    const float xy_max_dist_desc_cm = get_max_xy_error_before_descending_cm();
+    if (_enabled2.get() == 0 || is_zero(xy_max_dist_desc_cm)) {
+        // Preserve the original fixed PLND_XY_DIST_MAX behaviour unless explicitly enabled.
+        return xy_max_dist_desc_cm;
+    }
+
+    const float alt_max_cm = _sensor_max_alt * 100.0f;
+    const float alt_max2_cm = _sensor_max_alt2 * 100.0f;
+    const float xy_max_dist_desc2_cm = _xy_max_dist_desc2 * 100.0f;
+
+    if (alt_max_cm <= alt_max2_cm) {
+        // PLND_ALT_MAX2 must be below PLND_ALT_MAX to define a valid interpolation range.
+        return xy_max_dist_desc_cm;
+    }
+    if (alt_above_target_cm >= alt_max_cm) {
+        return xy_max_dist_desc_cm;
+    }
+    if (alt_above_target_cm <= alt_max2_cm) {
+        return xy_max_dist_desc2_cm;
+    }
+
+    return linear_interpolate(xy_max_dist_desc2_cm, xy_max_dist_desc_cm, alt_above_target_cm, alt_max2_cm, alt_max_cm);
 }
 
 // Check if the landing target is supposed to be in sight based on the height of the vehicle from the ground

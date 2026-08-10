@@ -664,10 +664,10 @@ void Mode::land_run_vertical_control(bool pause_descent)
                 // target is this many cm away from the vehicle
                 target_error_cm = (target_pos - current_pos).length();
             }
-            // check if we should descend or not
-            const float max_horiz_pos_error_cm = copter.precland.get_max_xy_error_before_descending_cm();
             Vector3f target_pos_meas;
             copter.precland.get_target_position_measurement_cm(target_pos_meas);
+            // check if we should descend or not. target_pos_meas.z is down to the target in cm.
+            const float max_horiz_pos_error_cm = copter.precland.get_max_xy_error_before_descending_cm(target_pos_meas.z);
             if (target_error_cm > max_horiz_pos_error_cm && !is_zero(max_horiz_pos_error_cm)) {
                 // doing precland but too far away from the obstacle
                 // do not descend
